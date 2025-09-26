@@ -14,158 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      categories: {
+      esop: {
         Row: {
-          created_at: string
-          description: string | null
           id: string
-          name: string
-          slug: string
+          percentage: number
+          scenario_id: string
         }
         Insert: {
-          created_at?: string
-          description?: string | null
           id?: string
-          name: string
-          slug: string
+          percentage: number
+          scenario_id: string
         }
         Update: {
-          created_at?: string
-          description?: string | null
+          id?: string
+          percentage?: number
+          scenario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esop_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founders: {
+        Row: {
+          equity: number
+          id: string
+          name: string
+          scenario_id: string
+        }
+        Insert: {
+          equity: number
+          id?: string
+          name: string
+          scenario_id: string
+        }
+        Update: {
+          equity?: number
           id?: string
           name?: string
-          slug?: string
-        }
-        Relationships: []
-      }
-      comments: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          parent_comment_id: string | null
-          post_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          parent_comment_id?: string | null
-          post_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          parent_comment_id?: string | null
-          post_id?: string
-          updated_at?: string
-          user_id?: string
+          scenario_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "comments_parent_comment_id_fkey"
-            columns: ["parent_comment_id"]
+            foreignKeyName: "founders_scenario_id_fkey"
+            columns: ["scenario_id"]
             isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
+            referencedRelation: "scenarios"
             referencedColumns: ["id"]
           },
         ]
       }
-      posts: {
+      rounds: {
         Row: {
-          category_id: string | null
-          content: string | null
-          created_at: string
-          excerpt: string | null
-          featured_image_url: string | null
           id: string
-          published: boolean | null
-          slug: string
-          title: string
-          updated_at: string
-          user_id: string
+          investment: number
+          round_name: string
+          scenario_id: string
+          valuation: number
         }
         Insert: {
-          category_id?: string | null
-          content?: string | null
-          created_at?: string
-          excerpt?: string | null
-          featured_image_url?: string | null
           id?: string
-          published?: boolean | null
-          slug: string
-          title: string
-          updated_at?: string
-          user_id: string
+          investment: number
+          round_name: string
+          scenario_id: string
+          valuation: number
         }
         Update: {
-          category_id?: string | null
-          content?: string | null
-          created_at?: string
-          excerpt?: string | null
-          featured_image_url?: string | null
           id?: string
-          published?: boolean | null
-          slug?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
+          investment?: number
+          round_name?: string
+          scenario_id?: string
+          valuation?: number
         }
         Relationships: [
           {
-            foreignKeyName: "posts_category_id_fkey"
-            columns: ["category_id"]
+            foreignKeyName: "rounds_scenario_id_fkey"
+            columns: ["scenario_id"]
             isOneToOne: false
-            referencedRelation: "categories"
+            referencedRelation: "scenarios"
             referencedColumns: ["id"]
           },
         ]
       }
-      profiles: {
+      scenarios: {
         Row: {
-          avatar_url: string | null
-          bio: string | null
           created_at: string
-          display_name: string | null
           id: string
-          location: string | null
+          name: string
           updated_at: string
           user_id: string
-          website: string | null
         }
         Insert: {
-          avatar_url?: string | null
-          bio?: string | null
           created_at?: string
-          display_name?: string | null
           id?: string
-          location?: string | null
+          name: string
           updated_at?: string
           user_id: string
-          website?: string | null
         }
         Update: {
-          avatar_url?: string | null
-          bio?: string | null
           created_at?: string
-          display_name?: string | null
           id?: string
-          location?: string | null
+          name?: string
           updated_at?: string
           user_id?: string
-          website?: string | null
         }
         Relationships: []
       }
