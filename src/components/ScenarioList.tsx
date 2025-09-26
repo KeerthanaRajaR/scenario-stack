@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Users, TrendingUp, Percent } from 'lucide-react';
-import { ScenarioWithDetails } from '@/lib/supabaseFunctions';
+import { ScenarioWithDetails } from '@/lib/types';
 
 interface ScenarioListProps {
   scenarios: ScenarioWithDetails[];

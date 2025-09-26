@@ -1,140 +1,89 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Scenario, Founder, Round, ESOP, CreateScenarioData, ScenarioWithDetails } from "./types";
 
-// TypeScript interfaces for the database tables
-export interface Scenario {
-  id: string;
-  user_id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-}
+export type { Scenario, Founder, Round, ESOP, CreateScenarioData, ScenarioWithDetails };
 
-export interface Founder {
-  id: string;
-  scenario_id: string;
-  name: string;
-  equity: number;
-}
-
-export interface Round {
-  id: string;
-  scenario_id: string;
-  round_name: string;
-  investment: number;
-  valuation: number;
-}
-
-export interface ESOP {
-  id: string;
-  scenario_id: string;
-  percentage: number;
-}
-
-export interface ScenarioWithDetails extends Scenario {
-  founders: Founder[];
-  rounds: Round[];
-  esop: ESOP[];
-}
-
-export interface CreateScenarioData {
-  name: string;
-  founders: Omit<Founder, 'id' | 'scenario_id'>[];
-  rounds: Omit<Round, 'id' | 'scenario_id'>[];
-  esop: Omit<ESOP, 'id' | 'scenario_id'>[];
-}
-
-// Create a new scenario with associated data
-export const createScenario = async (data: CreateScenarioData): Promise<{ data: ScenarioWithDetails | null; error: any }> => {
+export async function createScenario(data: CreateScenarioData): Promise<{ data: Scenario | null; error: string | null }> {
   try {
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return { data: null, error: new Error('User not authenticated') };
+      return { data: null, error: "User not authenticated" };
     }
 
-    // Create the scenario
+    // Create scenario
     const { data: scenario, error: scenarioError } = await supabase
       .from('scenarios')
-      .insert([{ 
-        name: data.name, 
-        user_id: user.id 
-      }])
+      .insert({
+        user_id: user.id,
+        name: data.name
+      })
       .select()
       .single();
 
     if (scenarioError) {
-      return { data: null, error: scenarioError };
+      return { data: null, error: scenarioError.message };
     }
 
-    // Insert founders
-    const foundersToInsert = data.founders.map(founder => ({
-      ...founder,
-      scenario_id: scenario.id
-    }));
+    // Create founders
+    if (data.founders.length > 0) {
+      const { error: foundersError } = await supabase
+        .from('founders')
+        .insert(data.founders.map(founder => ({
+          scenario_id: scenario.id,
+          name: founder.name,
+          equity: founder.equity
+        })));
 
-    const { data: founders, error: foundersError } = await supabase
-      .from('founders')
-      .insert(foundersToInsert)
-      .select();
-
-    if (foundersError) {
-      return { data: null, error: foundersError };
+      if (foundersError) {
+        return { data: null, error: foundersError.message };
+      }
     }
 
-    // Insert rounds
-    const roundsToInsert = data.rounds.map(round => ({
-      ...round,
-      scenario_id: scenario.id
-    }));
+    // Create rounds
+    if (data.rounds.length > 0) {
+      const { error: roundsError } = await supabase
+        .from('rounds')
+        .insert(data.rounds.map(round => ({
+          scenario_id: scenario.id,
+          round_name: round.round_name,
+          investment: round.investment,
+          valuation: round.valuation
+        })));
 
-    const { data: rounds, error: roundsError } = await supabase
-      .from('rounds')
-      .insert(roundsToInsert)
-      .select();
-
-    if (roundsError) {
-      return { data: null, error: roundsError };
+      if (roundsError) {
+        return { data: null, error: roundsError.message };
+      }
     }
 
-    // Insert ESOP
-    const esopToInsert = data.esop.map(esop => ({
-      ...esop,
-      scenario_id: scenario.id
-    }));
+    // Create ESOP if provided
+    if (data.esop) {
+      const { error: esopError } = await supabase
+        .from('esop')
+        .insert({
+          scenario_id: scenario.id,
+          percentage: data.esop.percentage
+        });
 
-    const { data: esop, error: esopError } = await supabase
-      .from('esop')
-      .insert(esopToInsert)
-      .select();
-
-    if (esopError) {
-      return { data: null, error: esopError };
+      if (esopError) {
+        return { data: null, error: esopError.message };
+      }
     }
 
-    return {
-      data: {
-        ...scenario,
-        founders: founders || [],
-        rounds: rounds || [],
-        esop: esop || []
-      },
-      error: null
-    };
+    return { data: scenario, error: null };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error.message : "Unknown error" };
   }
-};
+}
 
-// Get all scenarios for the current user
-export const getScenariosForUser = async (): Promise<{ data: ScenarioWithDetails[] | null; error: any }> => {
+export async function getScenariosForUser(): Promise<{ data: ScenarioWithDetails[] | null; error: string | null }> {
   try {
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return { data: null, error: new Error('User not authenticated') };
+      return { data: null, error: "User not authenticated" };
     }
 
-    // Get scenarios with all related data
+    // Get scenarios with related data
     const { data: scenarios, error: scenariosError } = await supabase
       .from('scenarios')
       .select(`
@@ -147,119 +96,47 @@ export const getScenariosForUser = async (): Promise<{ data: ScenarioWithDetails
       .order('created_at', { ascending: false });
 
     if (scenariosError) {
-      return { data: null, error: scenariosError };
+      return { data: null, error: scenariosError.message };
     }
 
-    return { data: scenarios || [], error: null };
+    return { data: scenarios as ScenarioWithDetails[], error: null };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error.message : "Unknown error" };
   }
-};
+}
 
-// Update a scenario
-export const updateScenario = async (id: string, data: Partial<Pick<Scenario, 'name'>>): Promise<{ data: Scenario | null; error: any }> => {
+export async function updateScenario(id: string, updates: Partial<Scenario>): Promise<{ data: Scenario | null; error: string | null }> {
   try {
-    const { data: scenario, error } = await supabase
+    const { data, error } = await supabase
       .from('scenarios')
-      .update(data)
+      .update(updates)
       .eq('id', id)
       .select()
       .single();
 
-    return { data: scenario, error };
-  } catch (error) {
-    return { data: null, error };
-  }
-};
+    if (error) {
+      return { data: null, error: error.message };
+    }
 
-// Delete a scenario (cascade delete will handle related data)
-export const deleteScenario = async (id: string): Promise<{ error: any }> => {
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+export async function deleteScenario(id: string): Promise<{ error: string | null }> {
   try {
     const { error } = await supabase
       .from('scenarios')
       .delete()
       .eq('id', id);
 
-    return { error };
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { error: null };
   } catch (error) {
-    return { error };
+    return { error: error instanceof Error ? error.message : "Unknown error" };
   }
-};
-
-// Update founders for a scenario
-export const updateFounders = async (scenarioId: string, founders: Omit<Founder, 'scenario_id'>[]): Promise<{ data: Founder[] | null; error: any }> => {
-  try {
-    // First delete existing founders
-    await supabase
-      .from('founders')
-      .delete()
-      .eq('scenario_id', scenarioId);
-
-    // Then insert new founders
-    const foundersToInsert = founders.map(founder => ({
-      ...founder,
-      scenario_id: scenarioId
-    }));
-
-    const { data, error } = await supabase
-      .from('founders')
-      .insert(foundersToInsert)
-      .select();
-
-    return { data, error };
-  } catch (error) {
-    return { data: null, error };
-  }
-};
-
-// Update rounds for a scenario
-export const updateRounds = async (scenarioId: string, rounds: Omit<Round, 'scenario_id'>[]): Promise<{ data: Round[] | null; error: any }> => {
-  try {
-    // First delete existing rounds
-    await supabase
-      .from('rounds')
-      .delete()
-      .eq('scenario_id', scenarioId);
-
-    // Then insert new rounds
-    const roundsToInsert = rounds.map(round => ({
-      ...round,
-      scenario_id: scenarioId
-    }));
-
-    const { data, error } = await supabase
-      .from('rounds')
-      .insert(roundsToInsert)
-      .select();
-
-    return { data, error };
-  } catch (error) {
-    return { data: null, error };
-  }
-};
-
-// Update ESOP for a scenario
-export const updateEsop = async (scenarioId: string, esop: Omit<ESOP, 'scenario_id'>[]): Promise<{ data: ESOP[] | null; error: any }> => {
-  try {
-    // First delete existing ESOP
-    await supabase
-      .from('esop')
-      .delete()
-      .eq('scenario_id', scenarioId);
-
-    // Then insert new ESOP
-    const esopToInsert = esop.map(e => ({
-      ...e,
-      scenario_id: scenarioId
-    }));
-
-    const { data, error } = await supabase
-      .from('esop')
-      .insert(esopToInsert)
-      .select();
-
-    return { data, error };
-  } catch (error) {
-    return { data: null, error };
-  }
-};
+}
